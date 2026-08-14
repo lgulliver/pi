@@ -105,11 +105,24 @@ Treat anything resembling real customer data, identifiable performance data, or 
 ## Efficiency
 
 - **Output size**: pi's built-in tools already cap output at 50KB / 2000 lines (whichever hits first) before it reaches context. This is a platform guarantee, not something this config adds — verified against the `DEFAULT_MAX_BYTES`/`DEFAULT_MAX_LINES` constants pi ships.
-- **Context monitoring**: `extensions/status-line.ts` shows a live `provider/model | thinking | ctx%% | repo` line. `extensions/context-guard.ts` proactively nudges once per threshold (75%, 90%) suggesting `/handoff` — not a nag on every turn.
+- **Context monitoring**: `extensions/status-line.ts` shows a live `provider/model | thinking | ctx%% | repo` line, plus a `5h X% wk Y%` segment **when the active model is Anthropic** — that's subscription-usage against the 5-hour/7-day windows, not context fill. `extensions/context-guard.ts` proactively nudges once per threshold (75%, 90% context) suggesting `/handoff` — not a nag on every turn.
 - **Recon before reading**: `AGENTS.md` and the `scout` agent both push "grep/find before reading whole files," "don't dump full `terraform show`/K8s YAML/logs."
 - **Tool schema footprint**: no MCP servers or third-party extensions added globally beyond the one pre-existing, inspected, low-risk package (`@gotgenes/pi-anthropic-auth` — see commit history for why it's trusted). Keeping it that way is a decision, not an oversight — add integrations when there's a concrete need, not preemptively.
 - **RTK**: `extensions/rtk-rewrite.ts` reuses Liam's existing `rtk` CLI (the same one the Claude Code `PreToolUse` hook calls) to transparently rewrite bash commands to their token-saving equivalent. All rewrite logic lives in the `rtk` binary — this extension just calls it and applies its exit-code protocol, same as the Claude Code hook. One deliberate difference: rtk's "ask" exit code (3) fires for nearly everything it recognizes, so here it rewrites and allows silently rather than confirming every call — see the file's top comment for the full reasoning and how to flip it back to confirm-every-time if that's wrong in practice.
 - **Caveman skill**: pi already auto-discovers `~/.agents/skills/` by default, so Liam's `caveman` skill (and anything else in that directory) is available with no config change. `AGENTS.md` explicitly tells the model to invoke it by default, matching the always-on behavior configured in his Claude Code `CLAUDE.md` — otherwise pi has no reason to know it should be automatic rather than just available.
+
+## Subscription usage in the status line
+
+Anthropic's API returns real usage headers per request — `anthropic-ratelimit-unified-5h-*` / `-7d-*` / `-overage-*` — confirmed empirically by probing `after_provider_response` on a live call, not documented in pi's own docs. This is the same underlying data Claude Code's native statusline shows as `rate_limits.five_hour`/`seven_day`; pi doesn't expose that composed object, so `extensions/status-line.ts` reads the headers itself.
+
+**Provider-specific, checked directly, not assumed:**
+- `anthropic` — full usage data (5h/7d %, reset time, overage flag). Shown in the status line.
+- `openai-codex` — **no headers exposed at all** to `after_provider_response` ("Providers that abstract HTTP responses may not expose headers" per pi's docs — confirmed, this isn't just undocumented, Codex genuinely doesn't fire the event with headers). No usage visibility possible this way for your primary WORK-lane provider.
+- `github-copilot` / `opencode-go` — headers present, nothing usage-related in them.
+
+So the usage segment only ever appears while you're actively on an Anthropic model (`review` lane, or `/model` into one manually).
+
+**Found while building this, worth knowing:** at the time of writing, the 7-day unified window was at 100% utilization with `overage-in-use: true` — meaning Anthropic usage (via pi, and presumably Claude Code on the same account) is currently billing as paid extra usage, not plan quota. Check `claude.ai/settings/usage` for the real picture; the status line will now show it going forward without needing to check manually.
 
 ## Adding a project
 
