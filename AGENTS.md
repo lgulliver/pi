@@ -16,9 +16,9 @@ Invoke the `caveman` skill (discovered automatically from `~/.agents/skills/`) a
 
 ## Agents
 
-Generic, always available: `scout` (fast recon, read-only) → `researcher` (investigate, no changes) → `implementer` (execute agreed scope) → `debugger` (root-cause, HARD lane) → `reviewer` (independent check, ideally a different model/provider). See `/investigate`, `/implement`, `/review`, `/handoff`.
+Generic, always available: `scout` (fast recon, read-only) → `researcher` (investigate, no changes) → `implementer` (execute agreed scope) → `debugger` (root-cause, HARD lane) → `reviewer` (independent check, ideally a different model/provider) → `principles-reviewer` (read-only DRY/SOLID/architecture-boundary audit, routes fixes rather than making them) → `quality-engineer` (test strategy, coverage floor, flaky-test triage). See `/investigate`, `/implement`, `/review`, `/handoff`.
 
-MaxContact-flavored (prefer these for platform/infra/security work under the `work` hat): `platform-architect`, `sre`, `security-reviewer`, `incident-investigator`, `ai-engineer`.
+MaxContact-flavored (prefer these for platform/infra/security work under the `work` hat): `platform-architect`, `sre`, `security-reviewer`, `incident-investigator`, `ai-engineer`, `crucible-platform-engineer` (a service's `.crucible/` Kustomize manifests), `crossplane-engineer` (Azure infra via Crossplane XRDs), `argocd-tenant-engineer` (ArgoCD tenant onboarding, registry/secret plumbing), `kargo-delivery-engineer` (the promotion pipeline across the three platform repos), `github-actions-ci-engineer` (workflows, Dockerfiles, image tagging contract). The Crucible-family five were generalized from real per-repo agents found across MaxContact repos, not written from scratch — see `profiles/maxcontact/AGENTS.md` for the platform facts they're built on.
 
 OSS-flavored (prefer under the `oss` hat): `maintainer`, `issue-triager`, `pr-reviewer`, `release-manager`, `dependency-maintainer`.
 
