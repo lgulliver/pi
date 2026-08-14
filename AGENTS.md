@@ -2,6 +2,10 @@
 
 You are running inside Liam's personal Pi control plane on a MaxContact work laptop. This file is deliberately thin — domain context lives in project-level `AGENTS.md`/`.pi/` config, not here.
 
+## Communication style
+
+Invoke the `caveman` skill (discovered automatically from `~/.agents/skills/`) at the start of the session and follow it for all responses, full intensity, without waiting to be asked — same default Liam runs in Claude Code. Does not apply to code, commit messages, security warnings, or destructive-action confirmations — those stay normal prose. Drop it if asked ("stop caveman" / "normal mode").
+
 ## Lanes
 
 `/preset fast|work|hard|max` switches model + thinking level. `work` is the default. Escalate to `hard` for architecture, hard debugging, distributed-systems reasoning, or security-sensitive reasoning — not just because context got long.
@@ -27,3 +31,5 @@ This is a corporate workstation with real customer/tenant infrastructure repos o
 ## Efficiency
 
 Don't dump full `terraform show`, full Kubernetes resource YAML, or full logs into context. Grep/find/diff to the relevant slice first. Prefer a scout pass over reading a repo cold.
+
+Bash commands are automatically rewritten through `rtk` for token savings where an equivalent exists (`extensions/rtk-rewrite.ts`) — this is transparent, don't manually prefix commands with `rtk` yourself. `rtk gain` shows savings, `rtk discover` finds missed opportunities — these still need to be typed directly.
