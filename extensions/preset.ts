@@ -45,12 +45,31 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { CONFIG_DIR_NAME, DynamicBorder, getAgentDir } from "@earendil-works/pi-coding-agent";
 import { Container, Key, type SelectItem, SelectList, Text } from "@earendil-works/pi-tui";
 
+/** Auto-applied at the start of every fresh session with no --preset flag
+ * and nothing to restore from session state — see the session_start handler
+ * for why this, not settings.json's defaultModel, is the real default. */
+const DEFAULT_PRESET_NAME = "work";
+
+interface Candidate {
+	provider: string;
+	model: string;
+}
+
 // Preset configuration
 interface Preset {
-	/** Provider name (e.g., "anthropic", "openai") */
+	/** Provider name (e.g., "anthropic", "openai") — first/preferred candidate */
 	provider?: string;
-	/** Model ID (e.g., "claude-sonnet-4-5") */
+	/** Model ID (e.g., "claude-sonnet-4-5") — first/preferred candidate */
 	model?: string;
+	/**
+	 * Ordered fallback candidates, tried in order after `provider`/`model` if
+	 * that candidate has no resolvable auth. Lets a lane span providers (e.g.
+	 * anthropic -> openai-codex -> opencode-go) so one account's outage or
+	 * exhausted quota doesn't stall the lane. Also re-consulted reactively:
+	 * a 429/529 from the currently active candidate advances to the next one
+	 * (see the `after_provider_response` handler below).
+	 */
+	fallback?: Candidate[];
 	/** Thinking level */
 	thinkingLevel?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 	/** Tools to enable (replaces default set) */
@@ -109,6 +128,9 @@ export default function presetExtension(pi: ExtensionAPI) {
 	let activePresetName: string | undefined;
 	let activePreset: Preset | undefined;
 	let originalState: OriginalState | undefined;
+	// Index into candidateChain(activePreset) that's currently applied, so a
+	// live 429/529 knows which candidate to advance past.
+	let activeCandidateIndex = 0;
 
 	// Register --preset CLI flag
 	pi.registerFlag("preset", {
@@ -116,8 +138,42 @@ export default function presetExtension(pi: ExtensionAPI) {
 		type: "string",
 	});
 
+	function candidateChain(preset: Preset): Candidate[] {
+		const chain: Candidate[] = [];
+		if (preset.provider && preset.model) chain.push({ provider: preset.provider, model: preset.model });
+		if (preset.fallback) chain.push(...preset.fallback);
+		return chain;
+	}
+
 	/**
-	 * Apply a preset configuration.
+	 * Auth-only availability check — does NOT call setModel, so checking a
+	 * candidate has no side effect on the ones we don't end up choosing.
+	 * `getProviderAuth` resolves current API key/OAuth/env auth without
+	 * requiring the model to be loaded (see extensions.md, ctx.modelRegistry).
+	 */
+	function isCandidateAuthed(candidate: Candidate, ctx: ExtensionContext): boolean {
+		const model = ctx.modelRegistry.find(candidate.provider, candidate.model);
+		if (!model) return false;
+		try {
+			return Boolean(ctx.modelRegistry.getProviderAuth(candidate.provider));
+		} catch {
+			return false;
+		}
+	}
+
+	/**
+	 * Apply a preset configuration, walking its candidate chain (primary +
+	 * fallback) and using the first one with resolvable auth. This handles
+	 * "availability" (no credentials) and "provider" (the chain can span
+	 * providers) fallback. "Usage" fallback (a live 429/529 mid-session) is
+	 * handled separately below, reactively, in `after_provider_response` —
+	 * NOT here, since Anthropic's overage headers show a request *succeeding*
+	 * even when a quota window reports "rejected" (overage silently covers
+	 * it); only an actual failed request is treated as "unavailable due to
+	 * usage". A quota window being exhausted-but-covered-by-overage is a cost
+	 * signal for you to see in the status line and decide about manually —
+	 * not something this treats as a fallback trigger, since that's a cost
+	 * tolerance call, not an availability one.
 	 */
 	async function applyPreset(name: string, preset: Preset, ctx: ExtensionContext): Promise<boolean> {
 		// Snapshot state before the first preset is applied (i.e. only when transitioning from no-preset)
@@ -129,16 +185,33 @@ export default function presetExtension(pi: ExtensionAPI) {
 			};
 		}
 
-		// Apply model if specified
-		if (preset.provider && preset.model) {
-			const model = ctx.modelRegistry.find(preset.provider, preset.model);
-			if (model) {
+		// Apply model: walk the candidate chain, first authed one wins.
+		const chain = candidateChain(preset);
+		if (chain.length > 0) {
+			let applied = false;
+			for (let i = 0; i < chain.length; i++) {
+				const candidate = chain[i];
+				if (!isCandidateAuthed(candidate, ctx)) continue;
+				const model = ctx.modelRegistry.find(candidate.provider, candidate.model);
+				if (!model) continue;
 				const success = await pi.setModel(model);
-				if (!success) {
-					ctx.ui.notify(`Preset "${name}": No API key for ${preset.provider}/${preset.model}`, "warning");
+				if (success) {
+					activeCandidateIndex = i;
+					applied = true;
+					if (i > 0) {
+						ctx.ui.notify(
+							`Preset "${name}": using fallback ${candidate.provider}/${candidate.model} (candidate ${i} of ${chain.length})`,
+							"warning",
+						);
+					}
+					break;
 				}
-			} else {
-				ctx.ui.notify(`Preset "${name}": Model ${preset.provider}/${preset.model} not found`, "warning");
+			}
+			if (!applied) {
+				ctx.ui.notify(
+					`Preset "${name}": no authed candidate available (tried ${chain.map((c) => `${c.provider}/${c.model}`).join(", ")})`,
+					"error",
+				);
 			}
 		}
 
@@ -382,6 +455,34 @@ export default function presetExtension(pi: ExtensionAPI) {
 		},
 	});
 
+	// Reactive "usage/availability" fallback: an actual failed request (rate
+	// limited or upstream overloaded) on the currently active candidate
+	// advances to the next authed candidate in the chain for subsequent
+	// calls. Does not retry the failed turn itself — that's a bigger, riskier
+	// change (resubmitting a partially-failed turn correctly) left for if
+	// this proves to actually be needed in practice.
+	pi.on("after_provider_response", async (event, ctx) => {
+		if (!activePreset) return;
+		if (event.status !== 429 && event.status !== 529) return;
+
+		const chain = candidateChain(activePreset);
+		for (let i = activeCandidateIndex + 1; i < chain.length; i++) {
+			const candidate = chain[i];
+			if (!isCandidateAuthed(candidate, ctx)) continue;
+			const model = ctx.modelRegistry.find(candidate.provider, candidate.model);
+			if (!model) continue;
+			const success = await pi.setModel(model);
+			if (success) {
+				activeCandidateIndex = i;
+				ctx.ui.notify(
+					`Preset "${activePresetName}": ${event.status === 429 ? "rate limited" : "upstream overloaded"} on previous candidate — switched to ${candidate.provider}/${candidate.model}. Your next message will use it; this failed turn was not auto-retried.`,
+					"warning",
+				);
+				return;
+			}
+		}
+	});
+
 	// Inject preset instructions into system prompt
 	pi.on("before_agent_start", async (event) => {
 		if (activePreset?.instructions) {
@@ -421,6 +522,22 @@ export default function presetExtension(pi: ExtensionAPI) {
 				activePresetName = presetEntry.data.name;
 				activePreset = preset;
 				// Don't re-apply model/tools on restore, just keep the name for instructions
+			}
+		}
+
+		// Fresh session, no --preset flag, nothing to restore: auto-apply
+		// DEFAULT_PRESET_NAME. This exists because pi persists whatever model/
+		// thinking-level is currently active back into the live settings.json
+		// (defaultProvider/defaultModel/defaultThinkingLevel) on every change —
+		// including changes this extension makes for fallback. That makes
+		// those settings.json fields drift into "whatever was last active",
+		// not a stable pin — so presets.json's DEFAULT_PRESET_NAME lane,
+		// re-applied here every fresh session, is the actual source of truth
+		// for "what's the default", not settings.json's defaultModel.
+		if (!presetFlag && !presetEntry?.data?.name) {
+			const defaultPreset = presets[DEFAULT_PRESET_NAME];
+			if (defaultPreset) {
+				await applyPreset(DEFAULT_PRESET_NAME, defaultPreset, ctx);
 			}
 		}
 

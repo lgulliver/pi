@@ -1,7 +1,7 @@
 {
   "theme": "dark",
-  "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.5",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-sonnet-5",
   "defaultThinkingLevel": "medium",
   "enabledModels": [
     "openai-codex/*",

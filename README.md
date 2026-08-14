@@ -44,15 +44,30 @@ Global config loads regardless of cwd. Project-specific config layers on top aut
 
 Four pools authenticated on this machine, verified via `pi --list-models`: `openai-codex` (ChatGPT Plus/Pro), `anthropic` (Claude, via a `claude setup-token` subscription token — the Team-plan browser OAuth flow doesn't work, this does), `opencode-go` (bundled multi-model plan), `github-copilot` (MaxContact seat — available via `/model`, not wired into a preset yet, no evidence yet on where it beats the other three).
 
-| Lane | Provider/model | Thinking | Use for |
-|---|---|---|---|
-| `fast` | `opencode-go/deepseek-v4-flash` | low | recon, search, summaries, mechanical work |
-| `work` (default) | `openai-codex/gpt-5.5` | medium | normal engineering, implementation, everyday debugging |
-| `hard` | `openai-codex/gpt-5.6-terra` | high | architecture, hard debugging, distributed-systems/security-sensitive reasoning |
-| `max` | `openai-codex/gpt-5.6-terra` | xhigh | explicit-invoke only, never a default |
-| `review` | `anthropic/claude-sonnet-5` | high | independent second opinion — different model family on purpose |
+| Lane | Primary | Fallback chain (in order) | Thinking | Use for |
+|---|---|---|---|---|
+| `fast` | `opencode-go/deepseek-v4-flash` | `openai-codex/gpt-5.4-mini` | low | recon, search, summaries, mechanical work |
+| `work` (default) | `anthropic/claude-sonnet-5` | `opencode-go/deepseek-v4-pro` → `openai-codex/gpt-5.5` | medium | normal engineering, implementation, everyday debugging |
+| `hard` | `anthropic/claude-opus-5` | `opencode-go/deepseek-v4-pro` → `openai-codex/gpt-5.6-terra` | high | architecture, hard debugging, distributed-systems/security-sensitive reasoning |
+| `max` | `anthropic/claude-opus-5` | same as `hard` | xhigh | explicit-invoke only, never a default |
+| `review` | `openai-codex/gpt-5.6-terra` | `opencode-go/deepseek-v4-pro` → `anthropic/claude-sonnet-5` (last resort) | high | independent second opinion — different model family on purpose |
 
-`/preset work` returns to baseline. Escalate to `hard` on evidence (repeated unexplained failure, conflicting evidence, ambiguous root cause, multiple subsystems, security-sensitive reasoning, high cost of a wrong answer) — not just because a task feels big or context got long.
+Flipped from the original build: Anthropic is now the WORK/HARD/MAX primary (Codex was), Codex is now REVIEW's primary (Anthropic was) — Liam's call, made with the overage state above already known. `/preset work` returns to baseline.
+
+Escalate to `hard` on evidence (repeated unexplained failure, conflicting evidence, ambiguous root cause, multiple subsystems, security-sensitive reasoning, high cost of a wrong answer) — not just because a task feels big or context got long.
+
+### Fallback
+
+Each lane above has an ordered fallback chain (`extensions/preset.ts`, extended beyond the vendored example). Two independent mechanisms:
+
+- **Preflight (availability/provider):** at apply time, walks primary → fallback candidates, uses the first one with resolvable auth (`ctx.modelRegistry.getProviderAuth`) — checked, not assumed. Chains deliberately span providers so one account's problem doesn't stall a lane.
+- **Reactive (usage, mid-session):** a live `429`/`529` on the active candidate advances to the next authed one for subsequent calls, with a visible notify. It does **not** retry the failed turn itself — only the next message uses the fallback. This hasn't been tested against a real 429 (forcing one deliberately would waste quota/money); the logic is straightforward and the underlying event is confirmed real, but treat it as logically-verified, not battle-tested, until one happens naturally.
+
+**Deliberately not a fallback trigger:** Anthropic's overage state (7d window "rejected" but request succeeding via paid overage). That's a *cost* signal, not an *availability* one — whether to keep paying overage or manually switch lanes is your call, shown in the status line, not something this silently decides for you.
+
+**A real gap found while proving this works:** `getProviderAuth` confirms you're logged into a provider, not that your account is entitled to a specific model. `gpt-5.3-codex-spark` passed the auth check and was picked as a candidate, then failed at the actual request: *"not supported when using Codex with a ChatGPT account"* — a real account-tier restriction our availability check can't see in advance. None of the models actually used in `presets.json` above are known to have this problem, but if a fallback ever visibly fails immediately after being selected, this is why — worth an eyes-on check before adding any new model to a fallback chain.
+
+**Gotcha that would have silently corrupted this file:** pi persists whatever model/thinking-level is currently active back into `settings.json`'s `defaultProvider`/`defaultModel`/`defaultThinkingLevel` on every change — including changes made internally by this preset extension's own fallback logic, not just `/model`. Confirmed by triggering a fallback and watching those three keys rewrite themselves. That makes `settings.json`'s defaults drift into "whatever ran last", not a stable pin — so `extensions/preset.ts` now auto-applies the `work` preset at the start of every fresh session with nothing else to restore, making `presets.json`'s `work` lane the actual source of truth for "the default", independent of whatever `settings.json` currently says. Confirmed by deliberately drifting it via `/preset test-fallback`, then watching a fresh session reset it correctly.
 
 **Known flake:** `opencode-go/deepseek-v4-flash` occasionally (~1 in 6 calls, observed) returns `RegionError: ... only available hosted in China and requires explicit opt in`, then succeeds normally on retry seconds later with no config change. Looks like intermittent upstream routing to a China-only replica, not a persistent account restriction — confirmed by immediately retrying the exact same call. If you ever see this and a retry *doesn't* clear it, treat that as new information (a real opt-in gate, not a flake) and don't click through the opt-in link without treating it as the data-residency decision it'd be.
 
