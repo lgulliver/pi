@@ -1,0 +1,23 @@
+# Secrets — never commit
+auth.json
+models.json
+*.local.json
+.env
+.env.*
+
+# OS
+.DS_Store
+
+# Node
+node_modules/
+.pi/npm/
+
+# Logs
+*.log
+
+# Session/runtime state (lives in ~/.pi/agent/sessions, not this repo,
+# but ignore defensively in case a tool ever writes here)
+sessions/
+
+# Unrelated local memory store for this cwd (Remember plugin) — not Pi config
+.remember/

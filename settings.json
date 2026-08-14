@@ -1,0 +1,20 @@
+{
+  "theme": "dark",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.5",
+  "defaultThinkingLevel": "medium",
+  "enabledModels": [
+    "openai-codex/*",
+    "anthropic/*",
+    "opencode-go/*",
+    "github-copilot/*"
+  ],
+  "quietStartup": true,
+  "warnings": {
+    "anthropicExtraUsage": true
+  },
+  "packages": [
+    "npm:@gotgenes/pi-anthropic-auth"
+  ],
+  "lastChangelogVersion": "0.84.2"
+}
