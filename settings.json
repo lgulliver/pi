@@ -9,6 +9,11 @@
     "opencode-go/*",
     "github-copilot/*"
   ],
+  "skills": [
+    "skills",
+    "profiles/maxcontact/skills",
+    "profiles/oss/skills"
+  ],
   "quietStartup": true,
   "warnings": {
     "anthropicExtraUsage": true

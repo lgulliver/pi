@@ -26,6 +26,8 @@ interface RiskRule {
 	reason: string;
 }
 
+// Always active, regardless of role — these are about the command being
+// dangerous, not about which hat you're wearing.
 const CONFIRM_RULES: RiskRule[] = [
 	{ pattern: /\brm\s+(-[a-z]*r[a-z]*f|-[a-z]*f[a-z]*r|--recursive)/i, reason: "recursive/forced delete" },
 	{ pattern: /\bsudo\b/i, reason: "sudo" },
@@ -38,12 +40,28 @@ const CONFIRM_RULES: RiskRule[] = [
 	{ pattern: /\bdrop\s+(table|database)\b/i, reason: "SQL drop" },
 ];
 
+// Only active when the "oss" hat is on (see extensions/role.ts). OSS work is
+// publicly visible the instant it lands, so push/PR/release get an extra
+// confirm even though OSS is otherwise a freer posture than WORK.
+const OSS_ONLY_RULES: RiskRule[] = [
+	{ pattern: /\bgit\s+push\b/i, reason: "push (oss hat: confirm before publishing)" },
+	{ pattern: /\bgh\s+pr\s+create\b/i, reason: "open PR (oss hat)" },
+	{ pattern: /\bgh\s+release\s+create\b/i, reason: "publish release (oss hat)" },
+];
+
+let currentRole: "work" | "oss" = "work";
+
 export default function permissionGate(pi: ExtensionAPI) {
+	pi.events.on("role:change", (role) => {
+		currentRole = role as "work" | "oss";
+	});
+
 	pi.on("tool_call", async (event, ctx) => {
 		if (event.toolName !== "bash") return undefined;
 
 		const command = String(event.input.command ?? "");
-		const hit = CONFIRM_RULES.find((r) => r.pattern.test(command));
+		const rules = currentRole === "oss" ? [...CONFIRM_RULES, ...OSS_ONLY_RULES] : CONFIRM_RULES;
+		const hit = rules.find((r) => r.pattern.test(command));
 		if (!hit) return undefined;
 
 		if (!ctx.hasUI) {
