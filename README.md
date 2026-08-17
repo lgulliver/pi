@@ -117,6 +117,16 @@ Pi's own project-trust model adds a layer underneath: project-local `.pi/extensi
 
 Treat anything resembling real customer data, identifiable performance data, or commercial/pricing info as needing a policy check before use, per the MaxContact AI policy — ask, don't assume.
 
+## Theme — `opencode`
+
+`themes/opencode.json` (symlinked to `~/.pi/agent/themes/`, active via `settings.json`'s `"theme": "opencode"`) is a straight port of OpenCode's own default `opencode` theme palette — pulled from the real source (`packages/tui/src/theme/assets/opencode.json` in `sst/opencode` on GitHub, not guessed), remapped onto pi's 51-token theme schema (`~/.pi/agent/docs/themes.md`). Same accent orange (`#fab283`), purple/blue/cyan secondaries, and near-black background steps OpenCode ships by default.
+
+`extensions/status-line.ts` uses `ctx.ui.setFooter` to fully replace pi's own multi-line default footer with a single OpenCode-styled row — `dir:branch` dim on the left, colored bullet (`•`)-prefixed segments right-justified, mirroring OpenCode's real session footer (`packages/tui/src/routes/session/footer.tsx`). Content is unchanged from before — model/thinking, context %, the Anthropic 5h/7d usage segments described below — only the layout moved from a supplemental status line (`setStatus`, stacked under pi's own footer) to a full footer replacement.
+
+Note: OpenCode's `opencode.json` config file has no theme/statusline keys itself — its TUI theme is selected via a separate `tui.json` (`{"theme": "..."}`) or `/theme`, with palettes shipped as compiled-in JSON. There was nothing to copy config-shape-wise; this port is palette + layout only.
+
+**What isn't achievable, and why (checked against pi's own extension docs, not assumed):** OpenCode's right-hand sidebar panel and its condensed one-line-per-step trace (`+ Thought…`, `→ Read …`) are OpenCode's own multi-pane SolidJS TUI renderer — a different architecture, not a config surface. Pi's extension API only exposes `setWidget` (above/below the input editor, single column, no split-pane/sidebar concept) and `setFooter` (one full-width row) — confirmed via `docs/tui.md` and `docs/extensions.md`, not inferred. Built-in tool calls (`Read`, `Bash`, etc.) render as pi's own bordered/backgrounded boxes; that's core rendering, not something an extension can override to a bare `→ label` line — only tools an extension itself defines get fully custom rendering. So the footer above is the ceiling for visual parity, not a step toward the sidebar.
+
 ## Efficiency
 
 - **Output size**: pi's built-in tools already cap output at 50KB / 2000 lines (whichever hits first) before it reaches context. This is a platform guarantee, not something this config adds — verified against the `DEFAULT_MAX_BYTES`/`DEFAULT_MAX_LINES` constants pi ships.
