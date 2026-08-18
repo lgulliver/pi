@@ -28,7 +28,7 @@ export type Role = "work" | "oss";
 const ROLE_INSTRUCTIONS: Record<Role, string> = {
 	work: [
 		"Hat: WORK (MaxContact).",
-		"Domain context lives in profiles/maxcontact/AGENTS.md — read it if you haven't this session and the task is infrastructure/platform/security related.",
+		"Domain context lives in profiles/work/AGENTS.md — read it if you haven't this session and the task is infrastructure/platform/security related.",
 		"Prefer platform-architect, sre, security-reviewer, incident-investigator, ai-engineer agents for MaxContact-specific work; scout/researcher/implementer/debugger/reviewer for everything else.",
 		"Strict posture: this is a corporate workstation with real customer/tenant infrastructure. Confirm before anything that mutates shared state (see extensions/permission-gate.ts).",
 	].join("\n"),

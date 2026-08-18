@@ -14,7 +14,7 @@ This file describes what's actually built and verified, not the original spec. W
   agents/                     15 subagent definitions (.md, YAML frontmatter)
   extensions/                 TypeScript extensions (see below)
   prompts/                    /investigate /implement /review /handoff
-  profiles/{maxcontact,oss}/  role-specific AGENTS.md + skills (placeholders)
+  profiles/{work,oss}/       role-specific AGENTS.md + skills (placeholders)
 
 ~/.pi/agent/                  <- pi's real config dir; everything above is
   settings.json -> repo         symlinked in from the repo except:
@@ -164,7 +164,7 @@ your-repo/
                             prompts that can instruct arbitrary bash)
 ```
 
-Don't put MaxContact-specific architecture in the *global* config (this repo) — it belongs in `profiles/maxcontact/` here (shared across all MaxContact repos) or in the individual repo's own `AGENTS.md` (repo-specific).
+Don't put MaxContact-specific architecture in the *global* config (this repo) — it belongs in `profiles/work/` here (shared across all MaxContact repos) or in the individual repo's own `AGENTS.md` (repo-specific).
 
 ## Updating model mappings
 
