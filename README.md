@@ -1,6 +1,6 @@
 # Pi Agent OS
 
-Liam's personal Pi ([pi.dev](https://pi.dev), `@earendil-works/pi-coding-agent`) control-plane config for a MaxContact work laptop. Covers two contexts only — MaxContact/work and Open Source — deliberately nothing else.
+Liam's personal Pi ([pi.dev](https://pi.dev), `@earendil-works/pi-coding-agent`) control-plane config for a corporate work laptop. Covers two contexts only — Work and Open Source — deliberately nothing else.
 
 This file describes what's actually built and verified, not the original spec. Where the two differ, this file is correct.
 
@@ -42,7 +42,7 @@ Global config loads regardless of cwd. Project-specific config layers on top aut
 
 ## Compute lanes — `/preset <name>`
 
-Four pools authenticated on this machine, verified via `pi --list-models`: `openai-codex` (ChatGPT Plus/Pro), `anthropic` (Claude, via a `claude setup-token` subscription token — the Team-plan browser OAuth flow doesn't work, this does), `opencode-go` (bundled multi-model plan), `github-copilot` (MaxContact seat — available via `/model`, not wired into a preset yet, no evidence yet on where it beats the other three).
+Four pools authenticated on this machine, verified via `pi --list-models`: `openai-codex` (ChatGPT Plus/Pro), `anthropic` (Claude, via a `claude setup-token` subscription token — the Team-plan browser OAuth flow doesn't work, this does), `opencode-go` (bundled multi-model plan), `github-copilot` (work seat — available via `/model`, not wired into a preset yet, no evidence yet on where it beats the other three).
 
 | Lane | Primary | Fallback chain (in order) | Thinking | Use for |
 |---|---|---|---|---|
@@ -75,7 +75,7 @@ Presets set the model, thinking level, and inject a short lane-identity instruct
 
 ## Hat — `/hat work|oss`
 
-Explicit only, defaults to `work`. This machine has no clean filesystem split between MaxContact and OSS repos (everything lives flat under `~/repos/*`), so it's never inferred from cwd — you say which one you're in.
+Explicit only, defaults to `work`. This machine has no clean filesystem split between work and OSS repos (everything lives flat under `~/repos/*`), so it's never inferred from cwd — you say which one you're in.
 
 What it actually changes:
 - System-prompt framing (points the model at the right profile doc, suggests the right agents)
@@ -100,7 +100,7 @@ Generic (always relevant):
 | `debugger` | `gpt-5.6-terra` (hard) | root cause before fix, symptom vs cause |
 | `reviewer` | `claude-sonnet-5` (review) | independent check — different model family on purpose |
 
-MaxContact-flavored (`work` hat): `platform-architect`, `sre`, `security-reviewer`, `incident-investigator`, `ai-engineer`.
+Work-flavored (`work` hat): `platform-architect`, `sre`, `security-reviewer`, `incident-investigator`, `ai-engineer`.
 
 OSS-flavored (`oss` hat): `maintainer`, `issue-triager`, `pr-reviewer`, `release-manager`, `dependency-maintainer`.
 
@@ -115,7 +115,7 @@ Two extensions, both **pattern-matching, not a sandbox** — say so plainly rath
 
 Pi's own project-trust model adds a layer underneath: project-local `.pi/extensions` only load after you trust that project, so a malicious repo can't auto-run code just by you `cd`-ing into it.
 
-Treat anything resembling real customer data, identifiable performance data, or commercial/pricing info as needing a policy check before use, per the MaxContact AI policy — ask, don't assume.
+Treat anything resembling real customer data, identifiable performance data, or commercial/pricing info as needing a policy check before use, per your org's AI policy — ask, don't assume.
 
 ## Theme — `opencode`
 
@@ -164,7 +164,7 @@ your-repo/
                             prompts that can instruct arbitrary bash)
 ```
 
-Don't put MaxContact-specific architecture in the *global* config (this repo) — it belongs in `profiles/work/` here (shared across all MaxContact repos) or in the individual repo's own `AGENTS.md` (repo-specific).
+Don't put work-specific architecture in the *global* config (this repo) — it belongs in `profiles/work/` here (shared across all work repos) or in the individual repo's own `AGENTS.md` (repo-specific).
 
 ## Updating model mappings
 

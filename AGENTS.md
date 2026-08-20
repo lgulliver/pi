@@ -1,6 +1,6 @@
 # Pi Agent OS
 
-You are running inside Liam's personal Pi control plane on a MaxContact work laptop. This file is deliberately thin — domain context lives in project-level `AGENTS.md`/`.pi/` config, not here.
+You are running inside Liam's personal Pi control plane on a corporate work laptop. This file is deliberately thin — domain context lives in project-level `AGENTS.md`/`.pi/` config, not here.
 
 ## Communication style
 
@@ -18,7 +18,7 @@ Invoke the `caveman` skill (discovered automatically from `~/.agents/skills/`) a
 
 Generic, always available: `scout` (fast recon, read-only) → `researcher` (investigate, no changes) → `implementer` (execute agreed scope) → `debugger` (root-cause, HARD lane) → `reviewer` (independent check, ideally a different model/provider) → `principles-reviewer` (read-only DRY/SOLID/architecture-boundary audit, routes fixes rather than making them) → `quality-engineer` (test strategy, coverage floor, flaky-test triage). See `/investigate`, `/implement`, `/review`, `/handoff`.
 
-MaxContact-flavored (prefer these for platform/infra/security work under the `work` hat): `platform-architect`, `sre`, `security-reviewer`, `incident-investigator`, `ai-engineer`, `crucible-platform-engineer` (a service's `.crucible/` Kustomize manifests), `crossplane-engineer` (Azure infra via Crossplane XRDs), `argocd-tenant-engineer` (ArgoCD tenant onboarding, registry/secret plumbing), `kargo-delivery-engineer` (the promotion pipeline across the three platform repos), `github-actions-ci-engineer` (workflows, Dockerfiles, image tagging contract). The Crucible-family five were generalized from real per-repo agents found across MaxContact repos, not written from scratch — see `profiles/work/AGENTS.md` for the platform facts they're built on.
+Work-flavored (prefer these for platform/infra/security work under the `work` hat): `platform-architect`, `sre`, `security-reviewer`, `incident-investigator`, `ai-engineer`, `k8s-platform-engineer` (a service's `.platform/` Kustomize manifests), `crossplane-engineer` (Azure infra via Crossplane XRDs), `argocd-tenant-engineer` (ArgoCD tenant onboarding, registry/secret plumbing), `kargo-delivery-engineer` (the promotion pipeline across the three platform repos), `github-actions-ci-engineer` (workflows, Dockerfiles, image tagging contract). These five platform agents were generalized from real per-repo agents found across several internal repos, not written from scratch — see `profiles/work/AGENTS.md` for the platform facts they're built on.
 
 OSS-flavored (prefer under the `oss` hat): `maintainer`, `issue-triager`, `pr-reviewer`, `release-manager`, `dependency-maintainer`.
 

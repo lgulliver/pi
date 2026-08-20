@@ -1,6 +1,6 @@
 # OSS Profile
 
-Placeholder, same rule as the MaxContact profile: only real, confirmed conventions go here. This one is inherently more per-repo than the MaxContact profile (every OSS project has its own contribution style) — treat this as defaults to override per-project via that repo's own `AGENTS.md`/`CONTRIBUTING.md`, not a universal standard to impose.
+Placeholder, same rule as the work profile: only real, confirmed conventions go here. This one is inherently more per-repo than the work profile (every OSS project has its own contribution style) — treat this as defaults to override per-project via that repo's own `AGENTS.md`/`CONTRIBUTING.md`, not a universal standard to impose.
 
 ## Default Assumptions (override per repo)
 - Conventional commits unless the repo's own history says otherwise.

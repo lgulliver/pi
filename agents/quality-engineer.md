@@ -1,6 +1,6 @@
 ---
 name: quality-engineer
-description: Owns test strategy, coverage floors, flaky-test triage, and release-readiness gates. Has an effective veto on merges that erode quality. Use when adding tests, deciding what "done" means for a change, investigating a flaky test, or before a release. Generalized from a repeated per-repo pattern (test-strategy-owner agents) across several MaxContact repos.
+description: Owns test strategy, coverage floors, flaky-test triage, and release-readiness gates. Has an effective veto on merges that erode quality. Use when adding tests, deciding what "done" means for a change, investigating a flaky test, or before a release. Generalized from a repeated per-repo pattern (test-strategy-owner agents) across several internal repos.
 tools: read, grep, find, ls, bash
 ---
 

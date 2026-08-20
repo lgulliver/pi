@@ -18,7 +18,7 @@
  * skill scoping is done the way pi actually supports it: project-level
  * `.pi/settings.json` in each repo, not a global toggle.
  *
- * Default role is "work" — this is a MaxContact laptop first.
+ * Default role is "work" — this is a corporate work laptop first.
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -27,9 +27,9 @@ export type Role = "work" | "oss";
 
 const ROLE_INSTRUCTIONS: Record<Role, string> = {
 	work: [
-		"Hat: WORK (MaxContact).",
+		"Hat: WORK.",
 		"Domain context lives in profiles/work/AGENTS.md — read it if you haven't this session and the task is infrastructure/platform/security related.",
-		"Prefer platform-architect, sre, security-reviewer, incident-investigator, ai-engineer agents for MaxContact-specific work; scout/researcher/implementer/debugger/reviewer for everything else.",
+		"Prefer platform-architect, sre, security-reviewer, incident-investigator, ai-engineer agents for company-specific work; scout/researcher/implementer/debugger/reviewer for everything else.",
 		"Strict posture: this is a corporate workstation with real customer/tenant infrastructure. Confirm before anything that mutates shared state (see extensions/permission-gate.ts).",
 	].join("\n"),
 	oss: [
@@ -60,7 +60,7 @@ export default function roleExtension(pi: ExtensionAPI) {
 	}
 
 	pi.registerCommand("hat", {
-		description: "Switch role context: work (MaxContact, default) or oss",
+		description: "Switch role context: work (default) or oss",
 		handler: async (args, ctx) => {
 			const arg = args?.trim().toLowerCase();
 

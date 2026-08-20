@@ -1,6 +1,6 @@
 ---
 name: ai-engineer
-description: MaxContact AI/agent engineering work - prompt design, agent/tool wiring, model routing decisions, evals. Not a general implementer - use "implementer" for non-AI-specific code.
+description: AI/agent engineering work - prompt design, agent/tool wiring, model routing decisions, evals. Not a general implementer - use "implementer" for non-AI-specific code.
 tools: read, grep, find, ls, bash
 ---
 

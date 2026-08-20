@@ -1,6 +1,6 @@
 ---
 name: incident-investigator
-description: Structured investigation during a live or recent MaxContact incident - timeline reconstruction, evidence gathering, root cause. Does not apply remediation itself.
+description: Structured investigation during a live or recent production incident - timeline reconstruction, evidence gathering, root cause. Does not apply remediation itself.
 tools: read, grep, find, ls, bash
 model: anthropic/claude-opus-5
 ---
